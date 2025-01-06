@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personalized News Aggregator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-image: url('news-1172463.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        header {
+            background-color: rgba(76, 175, 80, 0.9);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        header h1 {
+            margin: 0;
+            flex: 1;
+            text-align: center;
+        }
+        .registration-button,
+        .offline-button {
+            margin: 0 1rem;
+            background-color: #4CAF50;
+            color: white;
+            padding: 0.8rem 1.2rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .registration-button:hover,
+        .offline-button:hover {
+            background-color: #45a049;
+        }
+        main {
+            padding: 2rem;
+            width: 80%;
+            max-width: 800px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+            margin-top: 2rem;
+        }
+        .filter {
+            margin-bottom: 1rem;
+        }
+        .filter select {
+            padding: 0.5rem;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 1rem;
+            font-size: 1rem;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .article {
+            background-color: white;
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .article img {
+            width: 100%;
+            height: auto;
+            border-radius: 5px;
+            margin-top: 1rem;
+        }
+        .article h2 {
+            margin: 0;
+        }
+        .article p {
+            color: #333;
+        }
+        .bookmark-icon {
+            position: absolute;
+            bottom: 0.5rem; /* Adjusted from 1rem to 0.5rem */
+            right: 1rem;
+            width: 24px;
+            height: 24px;
+            background-color: #4CAF50;
+            clip-path: polygon(50% 0%, 100% 20%, 100% 100%, 50% 80%, 0% 100%, 0% 20%);
+            cursor: pointer;
+            opacity: 0.7;
+        }
+        .bookmark-icon:hover {
+            opacity: 1;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgb(0,0,0);
+            background-color: rgba(0,0,0,0.4);
+            padding-top: 60px;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 400px;
+            border-radius: 10px;
+            text-align: center; /* Center align content */
+        }
+        .modal-content form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .modal-content label,
+        .modal-content input,
+        .modal-content button {
+            width: 100%;
+            max-width: 300px;
+            margin-bottom: 10px;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <button id="openRegistrationButton" class="registration-button">Register</button>
+        <h1>Breaking News</h1>
+        <button id="offlineButton" class="offline-button">Offline Mode</button>
+    </header>
+    <main>
+        <div class="filter">
+            <label for="category">Choose a category:</label>
+            <select id="category">
+                <option value="general">General</option>
+                <option value="business">Business</option>
+                <option value="entertainment">Entertainment</option>
+                <option value="health">Health</option>
+                <option value="science">Science</option>
+                <option value="sports">Sports</option>
+                <option value="technology">Technology</option>
+            </select>
+            <button id="fetchNewsButton">Fetch News</button>
+        </div>
+        <div id="articles"></div>
+    </main>
+    <div id="registrationModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Register</h2>
+            <form id="registrationForm">
+                <label for="name">Name:</label>
+                <input type="text" id="name" name="name" required><br><br>
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required><br><br>
+                <button type="submit">Submit</button>
+            </form>
+        </div>
+    </div>
+    <script>
+        const apiKey = '204f0a35c79342ecab510ab959fc8fe8';
+        const bookmarks = JSON.parse(localStorage.getItem('bookmarks')) || [];
+        let isOfflineMode = false;
+
+        document.getElementById('fetchNewsButton').addEventListener('click', fetchNews);
+        document.getElementById('openRegistrationButton').addEventListener('click', openRegistrationModal);
+        document.getElementById('offlineButton').addEventListener('click', toggleOfflineMode);
+        document.getElementById('registrationForm').addEventListener('submit', handleRegistration);
+
+        const modal = document.getElementById('registrationModal');
+        const span = document.getElementsByClassName('close')[0];
+
+        function openRegistrationModal() {
+            modal.style.display = 'block';
+        }
+
+        span.onclick = function() {
+            modal.style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        function handleRegistration(event) {
+            event.preventDefault();
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            alert(`Thank you for registering, ${name}!`);
+            modal.style.display = 'none';
+        }
+
+        function toggleOfflineMode() {
+            isOfflineMode = !isOfflineMode;
+            document.getElementById('offlineButton').textContent = isOfflineMode ? 'Online Mode' : 'Offline Mode';
+            fetchNews();
+        }
+
+        async function fetchNews() {
+            const category = document.getElementById('category').value;
+            const apiUrl = `https://newsapi.org/v2/top-headlines?country=us&category=${category}&apiKey=${apiKey}`;
+
+            try {
+                const response = isOfflineMode ? await fetchOfflineData() : await fetch(apiUrl);
+                const data = await response.json();
+                displayNews(data.articles, isOfflineMode);
+            } catch (error) {
+                console.error('Error fetching news:', error);
+            }
+        }
+
+        function fetchOfflineData() {
+            return new Promise((resolve) => {
+                const savedArticles = JSON.parse(localStorage.getItem('offlineArticles')) || [];
+                resolve({ json: () => ({ articles: savedArticles }) });
+            });
+        }
+
+        function displayNews(articles, isOffline) {
+            const newsContainer = document.getElementById('articles');
+            newsContainer.innerHTML = '';
+
+            const validArticles = articles.filter(article => 
+                article.title && article.description && article.url && 
+                article.title !== 'removed' && article.description !== 'removed' &&
+                article.title.trim() !== '' && article.description.trim() !== '' && article.url.trim() !== ''
+            );
+
+            validArticles.forEach((article, index) => {
+                const title = sanitizeHTML(article.title);
+                const description = sanitizeHTML(article.description || 'No description available.');
+                const imageUrl = sanitizeHTML(article.urlToImage || 'https://via.placeholder.com/300x150');
+                const url = sanitizeHTML(article.url);
+
+                const articleDiv = document.createElement('div');
+                articleDiv.className = 'article';
+                articleDiv.innerHTML = `
+                    <h2>${title}</h2>
+                    <p>${description}</p>
+                    <img src="${imageUrl}" alt="News Image">
+                    ${!isOffline ? `<a href="${url}" target="_blank">Read more</a>` : ''}
+                    <div class="bookmark-icon" onclick="bookmarkArticle(${index}, ${isOffline})"></div>
+                `;
+                newsContainer.appendChild(articleDiv);
+            });
+
+            if (newsContainer.innerHTML === '') {
+                newsContainer.innerHTML = '<p>No articles available for this category.</p>';
+            }
+        }
+
+        function sanitizeHTML(str) {
+            const temp = document.createElement('div');
+            temp.textContent = str;
+            return temp.innerHTML;
+        }
+
+        function bookmarkArticle(index, isOffline) {
+            if (isOffline) return alert('Cannot bookmark articles in offline mode.');
+
+            const category = document.getElementById('category').value;
+            const apiUrl = `https://newsapi.org/v2/top-headlines?country=us&category=${category}&apiKey=${apiKey}`;
+
+            fetch(apiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    const article = data.articles[index];
+                    bookmarks.push(article);
+                    localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
+                    alert('Article bookmarked!');
+                })
+                .catch(error => console.error('Error bookmarking article:', error));
+        }
+    </script>
+</body>
+</html>
